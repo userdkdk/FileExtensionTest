@@ -1,2 +1,2 @@
-# FileUploadTest
-FileUploadTest
+# FileExtensionTest
+FileExtensionTest
