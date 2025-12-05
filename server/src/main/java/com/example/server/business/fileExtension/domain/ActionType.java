@@ -1,5 +1,5 @@
 package com.example.server.business.fileExtension.domain;
 
-public enum EnableStatus {
-    ENABLE, DISABLE
+public enum ActionType {
+    CREATED, ENABLED, DISABLED
 }

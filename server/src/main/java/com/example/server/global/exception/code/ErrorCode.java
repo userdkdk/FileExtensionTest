@@ -13,7 +13,9 @@ public enum ErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "C-002", "Invalid input error"),
     UNAUTHORIZED_ACCESS(HttpStatus.UNAUTHORIZED, "C-003", "Unauthorized user access"),
 
-    // file extension
+    // file extension,
+    INVALID_EXTENSION_VALUE(HttpStatus.BAD_REQUEST, "F-001","Invalid extension type"),
+    EXCEED_EXTENSION_COUNT(HttpStatus.BAD_REQUEST, "F-002","Cound not add extension"),
 
 
     SAMPLE(HttpStatus.UNAUTHORIZED, "S-003", "Unauthorized user access");

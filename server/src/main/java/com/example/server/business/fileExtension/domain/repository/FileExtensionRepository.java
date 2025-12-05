@@ -4,4 +4,9 @@ import com.example.server.business.fileExtension.domain.FileExtension;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface FileExtensionRepository extends JpaRepository<FileExtension, Integer> {
+    boolean existsByExtension(String ext);
+
+    FileExtension findByExtension(String ext);
+
+    int countByBuiltInFalseAndEnabledFalse();
 }
