@@ -8,4 +8,4 @@ COPY ${JAR_FILE} app.jar
 EXPOSE 8080
 
 # 실행 명령어 test
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod,secret", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
