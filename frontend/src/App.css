@@ -189,6 +189,13 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.list__item--checkbox label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+}
+
 .ext-name {
   margin: 0;
   font-weight: 700;
@@ -295,6 +302,42 @@
 .hint {
   color: #9ab1c9;
   margin: 6px 0 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.tag button {
+  border: none;
+  background: none;
+  color: #ffbaba;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.feedback {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 720px) {

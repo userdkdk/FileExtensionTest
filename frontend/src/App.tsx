@@ -1,25 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import type { FormEvent } from 'react'
 import './App.css'
-import { createExtension, getExtensions } from './api'
+import { createExtension, getExtensions, updateExtension } from './api'
 import type { Extension } from './api'
 
-const apiBase = import.meta.env.VITE_API_BASE_URL ?? ''
+const BUILT_IN_EXTENSIONS = ['bat', 'cmd', 'com', 'cpl', 'exe', 'src', 'js']
+const CUSTOM_MAX = 200
 
 function App() {
   const [extensions, setExtensions] = useState<Extension[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [newExtension, setNewExtension] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [uploadMessage, setUploadMessage] = useState<string | null>(null)
 
   useEffect(() => {
     loadExtensions()
   }, [])
 
-  const allowedExtensions = useMemo(
-    () => extensions.filter((ext) => ext.enabled ?? true).map((ext) => ext.extension),
+  const builtInExtensions = useMemo(
+    () =>
+      BUILT_IN_EXTENSIONS.map((ext) => {
+        const match = extensions.find((item) => item.extension === ext)
+        return { extension: ext, enabled: match?.enabled ?? false }
+      }),
+    [extensions]
+  )
+
+  const customExtensions = useMemo(
+    () => extensions.filter((ext) => !BUILT_IN_EXTENSIONS.includes(ext.extension)),
     [extensions]
   )
 
@@ -27,6 +36,7 @@ function App() {
     try {
       setLoading(true)
       setError(null)
+      setActionMessage(null)
       const list = await getExtensions()
       setExtensions(list)
     } catch (err) {
@@ -38,39 +48,64 @@ function App() {
 
   async function handleAddExtension(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const ext = newExtension.trim()
+    const ext = newExtension.replace(/\s+/g, '').replace(/^\.+/, '').toLowerCase()
     if (!ext) {
       setError('추가할 확장자를 입력하세요.')
       return
     }
+    if (ext.length > 15) {
+      setError('길이가 15자를 넘으면 입력할 수 없습니다.')
+      return
+    }
+    if (customExtensions.length >= CUSTOM_MAX) {
+      setError(`커스텀 확장자는 최대 ${CUSTOM_MAX}개까지 추가할 수 있습니다.`)
+      return
+    }
     try {
       setError(null)
-      await createExtension(ext)
+      setActionMessage(null)
+      const res = await createExtension(ext)
+      if (!res.success) {
+        setError(res.error?.message ?? '등록에 실패했습니다.')
+        return
+      }
       setNewExtension('')
       await loadExtensions()
-      setUploadMessage(`.${ext} 확장자가 등록되었습니다.`)
+      setActionMessage(`.${ext} 커스텀 확장자가 추가되었습니다.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : '등록에 실패했습니다.')
     }
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const selected = event.target.files?.[0]
-    setFile(selected ?? null)
-    setUploadMessage(null)
-    if (!selected) return
-
-    const parts = selected.name.split('.')
-    const ext = parts.length > 1 ? parts.pop()?.toLowerCase() : undefined
-    if (!ext) {
-      setUploadMessage('파일 확장자를 확인할 수 없습니다.')
-      return
+  async function toggleBuiltIn(ext: string, enabled: boolean) {
+    try {
+      setActionMessage(null)
+      const res = await updateExtension(ext, enabled)
+      if (!res.success) {
+        setError(res.error?.message ?? '변경을 적용하지 못했습니다.')
+        return
+      }
+      setExtensions((prev) =>
+        prev.map((item) => (item.extension === ext ? { ...item, enabled } : item))
+      )
+      setActionMessage(`.${ext} 확장자 설정이 ${enabled ? '허용' : '차단'}되었습니다.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '변경 중 오류가 발생했습니다.')
     }
+  }
 
-    if (allowedExtensions.includes(ext)) {
-      setUploadMessage(`.${ext} 파일은 업로드 가능합니다.`)
-    } else {
-      setUploadMessage(`.${ext} 파일은 허용되지 않았습니다.`)
+  async function removeCustom(ext: string) {
+    try {
+      setActionMessage(null)
+      const res = await updateExtension(ext, false)
+      if (!res.success) {
+        setError(res.error?.message ?? '삭제에 실패했습니다.')
+        return
+      }
+      setExtensions((prev) => prev.filter((item) => item.extension !== ext))
+      setActionMessage(`.${ext} 커스텀 확장자를 비활성화했습니다.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -81,13 +116,8 @@ function App() {
           <p className="eyebrow">Secure upload</p>
           <h1>허용된 확장자만 업로드</h1>
           <p className="lede">
-            백엔드의 확장자 목록을 불러와 클라이언트에서 1차 검증 후 업로드합니다. 환경에 따라 자동으로
-            다른 API 주소를 사용합니다.
+            고정/커스텀 확장자를 관리하고, 허용 여부에 따라 업로드를 제어합니다.
           </p>
-        </div>
-        <div className="badge">
-          <span>API Base</span>
-          <strong>{apiBase || '미설정'}</strong>
         </div>
       </header>
 
@@ -96,34 +126,7 @@ function App() {
           <header className="card__header">
             <div>
               <p className="eyebrow">Step 1</p>
-              <h2>파일 선택</h2>
-            </div>
-            <span className="chip chip--accent">{allowedExtensions.length}개 허용됨</span>
-          </header>
-          <label className="upload-box">
-            <input type="file" onChange={handleFileChange} />
-            <div>
-              <p className="upload-title">파일을 선택해 확장자를 확인하세요</p>
-              <p className="upload-hint">허용된 확장자인지 즉시 확인합니다.</p>
-            </div>
-          </label>
-          {file && (
-            <div className="file-row">
-              <div>
-                <p className="file-name">{file.name}</p>
-                <p className="file-size">{(file.size / 1024).toFixed(1)} KB</p>
-              </div>
-              <span className="chip">{file.name.split('.').pop()?.toLowerCase()}</span>
-            </div>
-          )}
-          {uploadMessage && <p className="info">{uploadMessage}</p>}
-        </section>
-
-        <section className="card">
-          <header className="card__header">
-            <div>
-              <p className="eyebrow">Step 2</p>
-              <h2>허용 확장자 목록</h2>
+              <h2>고정 확장자</h2>
             </div>
             <button className="link-button" onClick={loadExtensions} disabled={loading}>
               다시 불러오기
@@ -131,21 +134,18 @@ function App() {
           </header>
           {loading ? (
             <p className="muted">불러오는 중...</p>
-          ) : error ? (
-            <p className="error">{error}</p>
-          ) : extensions.length === 0 ? (
-            <p className="muted">등록된 확장자가 없습니다.</p>
           ) : (
             <ul className="list">
-              {extensions.map((ext) => (
-                <li key={ext.extension} className="list__item">
-                  <div>
-                    <p className="ext-name">.{ext.extension}</p>
-                    {ext.builtIn && <p className="badge-inline">기본 제공</p>}
-                  </div>
-                  <span className={`chip ${ext.enabled === false ? 'chip--off' : 'chip--on'}`}>
-                    {ext.enabled === false ? '비활성' : '활성'}
-                  </span>
+              {builtInExtensions.map((ext) => (
+                <li key={ext.extension} className="list__item list__item--checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={ext.enabled}
+                      onChange={(e) => toggleBuiltIn(ext.extension, e.target.checked)}
+                    />
+                    <span>.{ext.extension}</span>
+                  </label>
                 </li>
               ))}
             </ul>
@@ -155,13 +155,16 @@ function App() {
         <section className="card">
           <header className="card__header">
             <div>
-              <p className="eyebrow">Step 3</p>
-              <h2>확장자 추가</h2>
+              <p className="eyebrow">Step 2</p>
+              <h2>커스텀 확장자</h2>
             </div>
+            <span className="chip chip--accent">
+              {customExtensions.length} / {CUSTOM_MAX}
+            </span>
           </header>
           <form className="form" onSubmit={handleAddExtension}>
             <div className="field">
-              <label htmlFor="extension">확장자</label>
+              <label htmlFor="extension">확장자 추가</label>
               <div className="field__input">
                 <span className="prefix">.</span>
                 <input
@@ -174,16 +177,35 @@ function App() {
                 />
               </div>
             </div>
-            <button type="submit" className="primary">
+            <button type="submit" className="primary" disabled={customExtensions.length >= CUSTOM_MAX}>
               추가하기
             </button>
           </form>
+          {customExtensions.length > 0 ? (
+            <ul className="tag-list">
+              {customExtensions.map((ext) => (
+                <li key={ext.extension} className="tag">
+                  <span>.{ext.extension}</span>
+                  <button type="button" onClick={() => removeCustom(ext.extension)} aria-label="삭제">
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">등록된 커스텀 확장자가 없습니다.</p>
+          )}
           <p className="hint">
-            입력 시 공백은 제거되고 소문자로 저장됩니다. 실제 업로드 API 호출은 백엔드 업로드 엔드포인트와
-            연결해 사용하세요.
+            입력 시 공백은 제거되고 소문자로 저장됩니다. 추가는 응답 success가 true일 때만 반영됩니다.
           </p>
         </section>
       </main>
+      {(error || actionMessage) && (
+        <div className="feedback">
+          {error && <p className="error">{error}</p>}
+          {actionMessage && !error && <p className="info">{actionMessage}</p>}
+        </div>
+      )}
     </div>
   )
 }

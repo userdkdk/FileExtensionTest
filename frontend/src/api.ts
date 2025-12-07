@@ -30,12 +30,22 @@ async function request<T>(path: string, init?: RequestInit) {
     ...init,
   })
 
+  const contentType = response.headers.get('content-type') ?? ''
+  const isJson = contentType.includes('application/json')
+  const payload = isJson ? await response.json() : await response.text()
+
   if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `요청이 실패했습니다. (${response.status})`)
+    // 서버가 JSON으로 에러 메시지를 내려줄 때 우선 사용
+    if (isJson && payload?.error?.message) {
+      throw new Error(payload.error.message)
+    }
+    if (typeof payload === 'string' && payload.trim()) {
+      throw new Error(payload)
+    }
+    throw new Error(`요청이 실패했습니다. (${response.status})`)
   }
 
-  return (await response.json()) as CommonResponse<T>
+  return payload as CommonResponse<T>
 }
 
 export async function getExtensions() {
@@ -44,8 +54,17 @@ export async function getExtensions() {
 }
 
 export async function createExtension(extension: string) {
-  await request<null>('/api/extension', {
+  const res = await request<null>('/api/extension', {
     method: 'POST',
     body: JSON.stringify({ extension }),
   })
+  return res
+}
+
+export async function updateExtension(extension: string, enabled: boolean) {
+  const res = await request<null>('/api/extension', {
+    method: 'PATCH',
+    body: JSON.stringify({ extension, enabled }),
+  })
+  return res
 }
