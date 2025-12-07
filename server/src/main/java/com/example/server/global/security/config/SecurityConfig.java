@@ -3,7 +3,6 @@ package com.example.server.global.security.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -42,6 +41,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE"));
         configuration.setExposedHeaders(List.of("Set-Cookie"));
+        configuration.setAllowedOrigins(Arrays.asList("https://file-extension-test.vercel.app"
+                ,"118.37.109.127"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

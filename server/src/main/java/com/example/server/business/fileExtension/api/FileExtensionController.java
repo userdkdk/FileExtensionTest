@@ -20,7 +20,7 @@ public class FileExtensionController {
     private final FileExtensionService fileExtensionService;
 
     // create file extension
-    @PostMapping("/")
+    @PostMapping("")
     public ResponseEntity<CommonResponse<Void>> createExtension (
             @Valid @RequestBody CreateExtensionRequest request
     ) {
@@ -29,7 +29,7 @@ public class FileExtensionController {
     }
 
     // update file extension
-    @PatchMapping("/")
+    @PatchMapping("")
     public ResponseEntity<CommonResponse<Void>> patchExtension (
             @Valid @RequestBody UpdateExtensionRequest request
     ) {
@@ -38,7 +38,7 @@ public class FileExtensionController {
     }
 
     // get file extension list
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<CommonResponse<List<ExtensionResponse>>> getExtensionList () {
         List<ExtensionResponse> response = fileExtensionService.getExtensionList();
         return CommonResponse.ok(response);
