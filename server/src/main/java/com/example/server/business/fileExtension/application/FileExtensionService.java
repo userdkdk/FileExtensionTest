@@ -28,6 +28,9 @@ public class FileExtensionService {
     public void createOrUpdateExtension(CreateExtensionRequest request) {
         // 입력값 유효성 검증
         String extensionName = extensionValidator.validateExtension(request.getExtension());
+
+        // builtin 여 부조회
+
         // 있으면 호출 아니면 생성
         FileExtension fileExtension = findExtension(extensionName, true);
 

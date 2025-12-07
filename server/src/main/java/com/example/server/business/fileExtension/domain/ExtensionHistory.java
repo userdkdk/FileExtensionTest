@@ -25,4 +25,8 @@ public class ExtensionHistory extends BaseEntity {
     public static ExtensionHistory create(FileExtension ext, ActionType action) {
         return new ExtensionHistory(ext,action);
     }
+
+    public void updateActionType(ActionType actionType) {
+        this.actionType = actionType;
+    }
 }

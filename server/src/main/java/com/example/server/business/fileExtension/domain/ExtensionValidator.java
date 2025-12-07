@@ -6,13 +6,17 @@ import com.example.server.global.exception.code.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class ExtensionValidator {
 
     private final FileExtensionRepository fileExtensionRepository;
+    private final Set<String> builtInSet = new HashSet<>(
+            Set.of("bat","cmd","com","cpl","exe","src","js"));
 
     private static final int MAX_CUSTOM = 200;
 
@@ -36,5 +40,8 @@ public class ExtensionValidator {
         if (currentCount > MAX_CUSTOM) {
             throw new CustomException(ErrorCode.EXCEED_EXTENSION_COUNT);
         }
+    }
+    public boolean isBuiltInSet(String ext) {
+        return builtInSet.contains(ext);
     }
 }
