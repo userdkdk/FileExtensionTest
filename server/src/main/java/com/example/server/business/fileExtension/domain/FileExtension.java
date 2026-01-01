@@ -9,8 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.Locale;
-
 @Entity
 @Getter
 @Table(name = "file_extensions",
@@ -44,11 +42,23 @@ public class FileExtension extends BaseEntity {
         return new FileExtension(extension, enableStatus);
     }
 
-    public void enable() {
+    public void enableBuiltIn() {
         this.enabled = true;
     }
 
-    public void disable() {
+    public void enableNotBuiltIn(ExtensionCounter extensionCounter) {
+        if (this.enabled) return;
+        extensionCounter.upper();
+        this.enabled = true;
+    }
+
+    public void disableBuiltIn() {
+        this.enabled = false;
+    }
+
+    public void disableNotBuiltIn(ExtensionCounter extensionCounter) {
+        if (!this.enabled) return;
+        extensionCounter.lower();
         this.enabled = false;
     }
 

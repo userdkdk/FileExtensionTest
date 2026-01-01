@@ -3,9 +3,10 @@ package com.example.server.business.fileExtension.application;
 import com.example.server.business.fileExtension.api.request.CreateExtensionRequest;
 import com.example.server.business.fileExtension.api.request.UpdateExtensionRequest;
 import com.example.server.business.fileExtension.api.response.ExtensionResponse;
+import com.example.server.business.fileExtension.domain.ExtensionCounter;
 import com.example.server.business.fileExtension.domain.ExtensionValidator;
 import com.example.server.business.fileExtension.domain.FileExtension;
-import com.example.server.business.fileExtension.domain.repository.ExtensionHistoryRepository;
+import com.example.server.business.fileExtension.domain.repository.ExtensionCounterRepository;
 import com.example.server.business.fileExtension.domain.repository.FileExtensionRepository;
 import com.example.server.global.exception.CustomException;
 import com.example.server.global.exception.code.ErrorCode;
@@ -21,43 +22,53 @@ import java.util.List;
 public class FileExtensionService {
 
     private final FileExtensionRepository fileExtensionRepository;
-    private final ExtensionHistoryRepository extensionHistoryRepository;
     private final ExtensionValidator extensionValidator;
+    private final ExtensionCounterRepository extensionCounterRepository;
 
     @Transactional
-    public void createOrUpdateExtension(CreateExtensionRequest request) {
-        // 입력값 유효성 검증
+    public void createOrEnableExtension(CreateExtensionRequest request) {
+        // 입력값 유효성 검증 및 normalize
         String extensionName = extensionValidator.validateExtension(request.getExtension());
-        // 있으면 호출 아니면 생성
-        FileExtension fileExtension = findExtension(extensionName, true);
 
-        // builtin이 아니면 현재개수 확인 + 이미 enabled면 에러반환
-        if (!fileExtension.isBuiltIn()) {
-            extensionValidator.checkCount();
-            checkAlreadyEnabled(fileExtension);
+        // 조회
+        FileExtension fileExtension = fileExtensionRepository.findByExtension(extensionName);
+        ExtensionCounter extensionCounter = extensionCounterRepository.findById(1)
+                .orElseThrow(()-> new CustomException(ErrorCode.INTERNAL_DB_ERROR));
+
+        // 조회 후 있으면 enable로 변경, 없으면 생성 후 저장
+        if (fileExtension != null) {
+            if (fileExtension.isBuiltIn()) {
+                fileExtension.enableBuiltIn();
+                return;
+            }
+            fileExtension.enableNotBuiltIn(extensionCounter);
+            return;
         }
-        fileExtension.enable();
+        fileExtension = FileExtension.create(extensionName, false);
+        fileExtension.enableNotBuiltIn(extensionCounter);
         fileExtensionRepository.save(fileExtension);
     }
 
     @Transactional
-    public void updateExtension(UpdateExtensionRequest request) {
+    public void disableExtension(UpdateExtensionRequest request) {
         // 입력값 유효성 검증
         String extensionName = extensionValidator.validateExtension(request.getExtension());
         // 있으면 호출 없으면 에러
-        FileExtension fileExtension = findExtension(extensionName, false);
+        FileExtension fileExtension = fileExtensionRepository.findByExtension(extensionName);
+        if (fileExtension == null) {
+            throw new CustomException(ErrorCode.EXTENSION_NOT_FOUND)
+                    .addParams("Extension Name", extensionName);
+        }
 
-        // builtin이 아니고 enable이면 현재개수 확인 + 이미 enabled면 에러반환
-        if (!fileExtension.isBuiltIn() && request.isEnabled()) {
-            extensionValidator.checkCount();
-            checkAlreadyEnabled(fileExtension);
+        if (fileExtension.isBuiltIn()) {
+            fileExtension.disableBuiltIn();
+            return;
         }
-        // 상태 변환
-        if (request.isEnabled()) {
-            fileExtension.enable();
-        } else {
-            fileExtension.disable();
-        }
+
+        ExtensionCounter extensionCounter = extensionCounterRepository.findById(1)
+                .orElseThrow(()-> new CustomException(ErrorCode.INTERNAL_DB_ERROR));
+
+        fileExtension.disableNotBuiltIn(extensionCounter);
     }
 
     public List<ExtensionResponse> getExtensionList() {
@@ -66,23 +77,5 @@ public class FileExtensionService {
         return extensionList.stream()
                 .map(ExtensionResponse::of)
                 .toList();
-    }
-
-    private void checkAlreadyEnabled(FileExtension fileExtension) {
-        if (fileExtension.isEnabled()) {
-            throw new CustomException(ErrorCode.INVALID_EXTENSION_STATUS)
-                    .addParams("Extension",fileExtension.getExtension());
-        }
-    }
-
-    private FileExtension findExtension(String ext, boolean isCreate) {
-        if (fileExtensionRepository.existsByExtension(ext)) {
-            return fileExtensionRepository.findByExtension(ext);
-        }
-        if (!isCreate) {
-            throw new CustomException(ErrorCode.EXTENSION_NOT_FOUND)
-                    .addParams("Extension Name", ext);
-        }
-        return FileExtension.create(ext, false);
     }
 }

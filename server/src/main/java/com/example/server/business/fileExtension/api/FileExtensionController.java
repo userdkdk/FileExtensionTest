@@ -21,19 +21,19 @@ public class FileExtensionController {
 
     // create file extension
     @PostMapping("")
-    public ResponseEntity<CommonResponse<Void>> createExtension (
+    public ResponseEntity<CommonResponse<Void>> enableExtension (
             @Valid @RequestBody CreateExtensionRequest request
     ) {
-        fileExtensionService.createOrUpdateExtension(request);
+        fileExtensionService.createOrEnableExtension(request);
         return CommonResponse.create();
     }
 
-    // update file extension
+    // disable file extension
     @PatchMapping("")
     public ResponseEntity<CommonResponse<Void>> patchExtension (
             @Valid @RequestBody UpdateExtensionRequest request
     ) {
-        fileExtensionService.updateExtension(request);
+        fileExtensionService.disableExtension(request);
         return CommonResponse.ok();
     }
 

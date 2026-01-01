@@ -27,17 +27,22 @@ public class SecurityConfig {
     private List<String> allowedOrigins;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, OriginCheckFilter originCheckFilter) throws Exception {
+    public OriginCheckFilter originCheckFilter() {
+        return new OriginCheckFilter();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(registry -> registry
-                    .requestMatchers("swagger-ui/**", "/v3/api-docs/**").permitAll()
-                    .requestMatchers("/api/**").permitAll()
-                    .anyRequest().authenticated()
-            )
-            .addFilterBefore(originCheckFilter, CorsFilter.class);
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(registry -> registry
+                        .requestMatchers("swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(originCheckFilter(), CorsFilter.class);
 
         return http.build();
     }

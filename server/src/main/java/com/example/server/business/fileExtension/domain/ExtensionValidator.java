@@ -1,24 +1,15 @@
 package com.example.server.business.fileExtension.domain;
 
-import com.example.server.business.fileExtension.domain.repository.FileExtensionRepository;
 import com.example.server.global.exception.CustomException;
 import com.example.server.global.exception.code.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class ExtensionValidator {
-
-    private final FileExtensionRepository fileExtensionRepository;
-    private final Set<String> builtInSet = new HashSet<>(
-            Set.of("bat","cmd","com","cpl","exe","src","js"));
-
-    private static final int MAX_CUSTOM = 200;
 
     public String validateExtension(String ext) {
         if (ext==null) {
@@ -33,15 +24,5 @@ public class ExtensionValidator {
                     .addParams("extension name",ext);
         }
         return normalized;
-    }
-    public void checkCount() {
-        int currentCount = fileExtensionRepository.
-                countByBuiltInFalseAndEnabledFalse();
-        if (currentCount > MAX_CUSTOM) {
-            throw new CustomException(ErrorCode.EXCEED_EXTENSION_COUNT);
-        }
-    }
-    public boolean isBuiltInSet(String ext) {
-        return builtInSet.contains(ext);
     }
 }
